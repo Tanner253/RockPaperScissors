@@ -1,20 +1,92 @@
 ﻿@page "/"
+@using System.Timers
+@using RpCGame.helpers
+@implements IDisposable
 @*rock*@
 
 
 
 <h1>Rock paper scissors</h1>
-<button class="btn btn-info">Play again!</button>
-<div style="display:flex; justify-content: space-around; margin-bottom:20px">
-    <img src="paper" class="image" />
+@if (!string.IsNullOrEmpty(resultMessage))
+{
+    <h3 style="color:@resultMessageColor">@resultMessage</h3>
+}
+<button class="btn btn-info" @onclick="PlayAgain">Play again!</button>
+<div style="display:flex; justify-content: center; margin-bottom:20px">
+    <img src="@opponentHand.Image" class="image" />
 </div>
 
-<div style="display:flex; justify-content: center">
+<div style="display:flex; justify-content: space-around">
+    @foreach (Hand hand in hands)
+    {
+    <img class="image selectable-image" src="@hand.Image" @onclick="@(()=> SelectHand(hand))" />
 
-    <img class="image selectable-image" src="/images/paper.jpg" alt="paper" />
+    }
 
-    <img class="image selectable-image" src="/images/rock.jpg" alt="rock" />
-
-    <img class="image selectable-image" src="/images/scissors.jpg" alt="scissor" />
+    
 
 </div>
+
+@code{
+    Timer timer;
+    Hand opponentHand;
+    string resultMessage = string.Empty;
+    string resultMessageColor = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        opponentHand = hands[0];
+        timer = new Timer();
+        timer.Interval = 100;
+        timer.Elapsed += TimerOnElapse;
+        timer.Start();
+    }
+    int indexOpponentHand = 0;
+
+    private void TimerOnElapse(object sernder, ElapsedEventArgs e)
+    {
+        indexOpponentHand = (indexOpponentHand + 1) % hands.Count;
+        opponentHand = hands[indexOpponentHand];
+        StateHasChanged();
+        Console.WriteLine("interval count: ");
+
+    }
+    private void PlayAgain()
+    {
+        timer.Start();
+        resultMessage = string.Empty;
+    }
+    public void Dispose()
+    {
+        if(timer != null)
+        {
+            timer.Dispose();
+        }
+    }
+    private void SelectHand(Hand hand)
+    {
+        timer.Stop();
+        var result = hand.PlayAgainst(opponentHand);
+        if(result == GameStatus.Victory)
+        {
+            resultMessage = "You Won!";
+            resultMessageColor = "green";
+        }else if( result == GameStatus.Loss)
+        {
+            resultMessage = "You Lost!";
+            resultMessageColor = "red";
+        }
+        else if( result == GameStatus.Draw)
+        {
+            resultMessage = "DRAW!";
+            resultMessageColor = "blue";
+        }
+    }
+    List<Hand> hands = new List<Hand>()
+    {
+        new Hand{Selection = OptionsRPS.Paper, LosesAgainst = OptionsRPS.Scissors, WinsAgainst = OptionsRPS.Rock, Image = "/images/paper.jpg"},
+        new Hand{Selection = OptionsRPS.Rock, LosesAgainst = OptionsRPS.Paper, WinsAgainst = OptionsRPS.Scissors, Image = "/images/rock.jpg"},
+        new Hand{Selection = OptionsRPS.Scissors, LosesAgainst = OptionsRPS.Rock, WinsAgainst = OptionsRPS.Paper, Image = "/images/scissors.jpg"}
+
+    };
+}
